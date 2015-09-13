@@ -24,18 +24,21 @@ import java.text.SimpleDateFormat;
 import model.User;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
-import model.ValueComparator;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public final class GmailUtil
 {
-
+    
+    List<ConversationCount> conversationCounts = new ArrayList<>();
     Date endDate, startDate;
     String nextPageToken = "";
     boolean isFirstPage = true;
@@ -43,9 +46,10 @@ public final class GmailUtil
     Map<String, Integer> conversation = new HashMap<>();
     List<com.google.api.services.gmail.model.Thread> threads;
     List<Message> messages = new ArrayList<>();
-    private static final String CLIENT_ID = "153291870773-0o323f7jjonnmoqil49sichl01tc3km9.apps.googleusercontent.com";
-    private static final String CLIENT_SECRET = "RVl5Jabn77Xv75sPJna2BEPk";
-    private static final String CALLBACK_URI = "http://localhost:8084/mailreport/GoogleConnector";
+    private static final String CLIENT_ID = "Your client id";
+    private static final String CLIENT_SECRET = "Your client secret";
+    //give your callback url
+    private static final String CALLBACK_URI = "http://localhost:8084/mailreport/index.jsp";
     private static final List<String> SCOPE = Arrays
             .asList("https://www.googleapis.com/auth/userinfo.profile;https://www.googleapis.com/auth/userinfo.email;https://www.googleapis.com/auth/gmail.readonly"
                     .split(";"));
@@ -56,7 +60,7 @@ public final class GmailUtil
     private String stateToken;
     private GoogleAuthorizationCodeFlow flow = null;
     private boolean dateExceed = false;
-
+    
     public GmailUtil()
     {
         flow = new GoogleAuthorizationCodeFlow.Builder(HTTP_TRANSPORT,
@@ -64,29 +68,67 @@ public final class GmailUtil
         generateStateToken();
     }
 
+    /**
+     * revokes the access
+     *
+     * @return
+     */
+    public String revoke()
+    {
+        try
+        {
+            HttpClient client = new DefaultHttpClient();
+            HttpPost post = new HttpPost("https://accounts.google.com/o/oauth2/revoke?token=" + stateToken);
+            client.execute(post);
+        }
+        catch (IOException e)
+        {
+        }
+        return "index.jsp";
+    }
+
+    /**
+     * generates secure token
+     */
     private void generateStateToken()
     {
-
+        
         SecureRandom sr1 = new SecureRandom();
         stateToken = "google;" + sr1.nextInt();
     }
 
+    /**
+     * builds the url to authenticate request
+     *
+     * @return
+     */
     public String buildLoginUrl()
     {
-
+        
         final GoogleAuthorizationCodeRequestUrl url = flow
                 .newAuthorizationUrl();
         System.out.println("state token-" + stateToken);
         return url.setRedirectUri(CALLBACK_URI).setState(stateToken).build();
     }
 
+    /**
+     * method returns statetoken
+     *
+     * @return
+     */
     public String getStateToken()
     {
         System.out.println("state token-" + stateToken);
         return stateToken;
     }
-
-    public Map<String, Integer> getUserInfoJson(final String authCode) throws IOException, ParseException
+    /**
+     * method authenticates user with authcode from google authentication, keep fetching the messages until reaches to messages older than 90 days
+     * @param authCode
+     * @return
+     * @throws IOException
+     * @throws ParseException 
+     */
+    public List<ConversationCount> getUserInfoJson(final String authCode) throws IOException, ParseException
     {
         final GoogleTokenResponse response = flow.newTokenRequest(authCode)
                 .setRedirectUri(CALLBACK_URI).execute();
@@ -106,15 +148,33 @@ public final class GmailUtil
         {
             fetchMessageList(mail, user, requestFactory);
         }
-        TreeMap<String, Integer> tempMap=new TreeMap<>(new ValueComparator(conversation));
-        tempMap.putAll(conversation);
-        return tempMap;
+        for (String email : conversation.keySet())
+        {
+            ConversationCount c=new ConversationCount(email, conversation.get(email));
+            System.out.println("c- "+c.getEmail()+" count- "+c.getNumberOfMessages());
+            conversationCounts.add(new ConversationCount(email, conversation.get(email)));
+        }
+       
+        Collections.sort(conversationCounts, new ConversationComparator());
+        System.out.println("sorted");
+        for(ConversationCount  c: conversationCounts)
+        {
+            System.out.println("c- "+c.getEmail()+" count- "+c.getNumberOfMessages());
+        }
+        return conversationCounts;
     }
-
+    /**
+     * method is internally called by getUserInfo method and fetches the list of messages
+     * @param mailId
+     * @param user
+     * @param requestFactory
+     * @throws IOException
+     * @throws ParseException 
+     */
     public void fetchMessageList(String mailId, User user, HttpRequestFactory requestFactory) throws IOException, ParseException
     {
         String url = "https://www.googleapis.com/gmail/v1/users/me/messages";
-        Gmail gm=new Gmail(HTTP_TRANSPORT, JSON_FACTORY, null);
+        Gmail gm = new Gmail(HTTP_TRANSPORT, JSON_FACTORY, null);
         if (!isFirstPage)
         {
             if (nextPageToken != null && nextPageToken.length() > 0)
@@ -123,29 +183,29 @@ public final class GmailUtil
             }
             else
             {
-                dateExceed=true;
+                dateExceed = true;
                 return;
             }
         }
         else
         {
-            isFirstPage=false;
+            isFirstPage = false;
         }
         GenericUrl url1 = new GenericUrl(url);
         final HttpRequest request1 = requestFactory.buildGetRequest(url1);
-        request1.setConnectTimeout(4*60000);
-        request1.setReadTimeout(20*60000);
+        request1.setConnectTimeout(4 * 60000);
+        request1.setReadTimeout(20 * 60000);
         request1.getHeaders().setContentType("application/json");
         String mailData = request1.execute().parseAsString();
         System.out.println("mailData-- " + mailData);
         JSONObject jSONObject = new JSONObject(mailData);
         try
         {
-        nextPageToken = jSONObject.getString("nextPageToken");
+            nextPageToken = jSONObject.getString("nextPageToken");
         }
-        catch(Exception e)
+        catch (Exception e)
         {
-            nextPageToken=null;
+            nextPageToken = null;
         }
         JSONArray messageArray = jSONObject.getJSONArray("messages");
         messages.clear();
@@ -159,39 +219,38 @@ public final class GmailUtil
         System.out.println("message length- " + messages.size());
         for (Message msg : messages)
         {
-            if(!dateExceed)
-            getMessages(user.getEmail(), user.getId(), msg.getId(), requestFactory);
-            else
-                return;
-        }
-        System.out.println("------------------------------------------coversation------------------------------------------");
-        System.out.println("  convesation size- "+conversation.size());
-        for (String x : conversation.keySet())
-        {
-            String email = x;
-            if (x.contains("<") && x.contains(">"))
+            if (!dateExceed)
             {
-
-                email = x.substring(x.indexOf("<") + 1, x.indexOf(">"));
+                getMessages(user.getEmail(), user.getId(), msg.getId(), requestFactory);
             }
-            System.out.println("email- " + email + " value- " + conversation.get(x));
+            else
+            {
+                return;
+            }
         }
     }
-
-
+    /**
+     * method is internally called by fetchMessageList method and fetches the properties of messages specified by id
+     * @param mailId
+     * @param userId
+     * @param messageId
+     * @param requestFactory
+     * @throws IOException
+     * @throws ParseException 
+     */
     public void getMessages(String mailId, String userId, String messageId, HttpRequestFactory requestFactory) throws IOException, ParseException
     {
         final GenericUrl url1 = new GenericUrl("https://www.googleapis.com/gmail/v1/users/" + userId + "/messages/" + messageId + "?format=metadata");
         final HttpRequest request1 = requestFactory.buildGetRequest(url1);
         request1.getHeaders().setContentType("application/json");
-        request1.setConnectTimeout(4*60000);
-        request1.setReadTimeout(20*60000);
+        request1.setConnectTimeout(4 * 60000);
+        request1.setReadTimeout(20 * 60000);
         String mailData = request1.execute().parseAsString();
         System.out.println("message in getmessage-- \n" + mailData);
         JSONObject jSONObject = new JSONObject(mailData);
         String date = jSONObject.getString("internalDate");
         Date msgDate = new Date(Long.parseLong(date));
-        System.out.println("message date- "+msgDate);
+        System.out.println("message date- " + msgDate);
         if (endDate == null)
         {
             startDate = msgDate;
@@ -200,11 +259,11 @@ public final class GmailUtil
             cal.add(Calendar.DAY_OF_MONTH, -90);
             endDate = cal.getTime();
         }
-        if(endDate.compareTo(msgDate)>0)
+        if (endDate.compareTo(msgDate) > 0)
         {
-            dateExceed=true;
+            dateExceed = true;
             return;
-        }            
+        }
         System.out.println("startdate date-- " + startDate + " end date-- " + endDate);
         String[] lables = new Gson().fromJson(jSONObject.getJSONArray("labelIds").toString(), String[].class);
         int msgType = 2;
@@ -220,9 +279,9 @@ public final class GmailUtil
                 msgType = 1;
                 break;
             }
-
+            
         }
-
+        
         JSONArray headerArray = jSONObject.getJSONObject("payload").getJSONArray("headers");
         for (int i = 0; i < headerArray.length(); i++)
         {
@@ -232,7 +291,7 @@ public final class GmailUtil
             {
                 if (header.equalsIgnoreCase("from"))
                 {
-
+                    
                     if (conversation.containsKey(headerValue))
                     {
                         conversation.replace(headerValue, conversation.get(headerValue) + 1);
@@ -278,6 +337,6 @@ public final class GmailUtil
                 }
             }
         }
-
+        
     }
 }

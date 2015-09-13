@@ -5,20 +5,7 @@
  */
 package com.mycompany.mailreport;
 
-import util.GmailUtil;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.ParseException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -43,34 +30,34 @@ public class GoogleConnector extends HttpServlet
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException
     {
-        response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        GmailUtil googleSignIn = new GmailUtil();
-        if (request.getParameter("code") == null
-                || request.getParameter("state") == null)
-        {
-            out.println("<a href='" + googleSignIn.buildLoginUrl() + "'>log in with google</a>");
-            request.getSession().setAttribute("state", googleSignIn.getStateToken());
-        }
-        else if (request.getParameter("code") != null && request.getParameter("state") != null && request.getParameter("state").equals(request.getSession().getAttribute("state")))
-        {
-            request.getSession().removeAttribute("state");
-
-            try
-            {
-                Map<String, Integer> conversation = googleSignIn.getUserInfoJson(request.getParameter("code"));
-                
-                for(String email:conversation.keySet())
-                {
-                   out.println("email: "+email+" #conversation- "+conversation.get(email));
-                }
-            }
-            catch (IOException | ParseException ex)
-            {
-                System.out.println("exception-- "+ex);
-                Logger.getLogger(GoogleConnector.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
+//        response.setContentType("text/html;charset=UTF-8");
+//        PrintWriter out = response.getWriter();
+//        GmailUtil googleSignIn = new GmailUtil();
+//        if (request.getParameter("code") == null
+//                || request.getParameter("state") == null)
+//        {
+//            out.println("<a href='" + googleSignIn.buildLoginUrl() + "'>log in with google</a>");
+//            request.getSession().setAttribute("state", googleSignIn.getStateToken());
+//        }
+//        else if (request.getParameter("code") != null && request.getParameter("state") != null && request.getParameter("state").equals(request.getSession().getAttribute("state")))
+//        {
+//            request.getSession().removeAttribute("state");
+//
+//            try
+//            {
+//                Map<String, Integer> conversation = googleSignIn.getUserInfoJson(request.getParameter("code"));
+//                
+//                for(String email:conversation.keySet())
+//                {
+//                   out.println("email: "+email+" #conversation- "+conversation.get(email));
+//                }
+//            }
+//            catch (IOException | ParseException ex)
+//            {
+//                System.out.println("exception-- "+ex);
+//                Logger.getLogger(GoogleConnector.class.getName()).log(Level.SEVERE, null, ex);
+//            }
+//        }
     }
 
    
