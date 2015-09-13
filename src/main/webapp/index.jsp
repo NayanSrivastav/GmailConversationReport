@@ -54,9 +54,5 @@
         }
     %>
     <body>
-
-        <div>
-            <input type="button" value="button" style="display: block; margin: 0 auto;">
-        </div>
     </body>
 </html>
