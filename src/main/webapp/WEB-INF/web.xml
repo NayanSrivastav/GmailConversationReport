@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="3.1" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
+    <servlet>
+        <servlet-name>GoogleConnector</servlet-name>
+        <servlet-class>com.mycompany.mailreport.GoogleConnector</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>sd</servlet-name>
+        <servlet-class>com.mycompany.mailreport.sd</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>serv</servlet-name>
+        <servlet-class>com.mycompany.mailreport.serv</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>GoogleConnector</servlet-name>
+        <url-pattern>/GoogleConnector</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>sd</servlet-name>
+        <url-pattern>/sd</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>serv</servlet-name>
+        <url-pattern>/serv</url-pattern>
+    </servlet-mapping>
+    <session-config>
+        <session-timeout>
+            30
+        </session-timeout>
+    </session-config>
+</web-app>
