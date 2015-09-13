@@ -37,17 +37,20 @@ import org.json.JSONObject;
 
 public final class GmailUtil
 {
-    
+
+    private String userEmailId = "";
     List<ConversationCount> conversationCounts = new ArrayList<>();
-    Date endDate, startDate;
+    private Date endDate;
+    Date startDate;
+
     String nextPageToken = "";
     boolean isFirstPage = true;
     static SimpleDateFormat sdf = new SimpleDateFormat("dd-mm-yyyy");
     Map<String, Integer> conversation = new HashMap<>();
     List<com.google.api.services.gmail.model.Thread> threads;
     List<Message> messages = new ArrayList<>();
-    private static final String CLIENT_ID = "Your client id";
-    private static final String CLIENT_SECRET = "Your client secret";
+    private static final String CLIENT_ID = "153291870773-0o323f7jjonnmoqil49sichl01tc3km9.apps.googleusercontent.com";
+    private static final String CLIENT_SECRET = "RVl5Jabn77Xv75sPJna2BEPk";
     //give your callback url
     private static final String CALLBACK_URI = "http://localhost:8084/mailreport/index.jsp";
     private static final List<String> SCOPE = Arrays
@@ -60,7 +63,7 @@ public final class GmailUtil
     private String stateToken;
     private GoogleAuthorizationCodeFlow flow = null;
     private boolean dateExceed = false;
-    
+
     public GmailUtil()
     {
         flow = new GoogleAuthorizationCodeFlow.Builder(HTTP_TRANSPORT,
@@ -92,7 +95,7 @@ public final class GmailUtil
      */
     private void generateStateToken()
     {
-        
+
         SecureRandom sr1 = new SecureRandom();
         stateToken = "google;" + sr1.nextInt();
     }
@@ -104,7 +107,7 @@ public final class GmailUtil
      */
     public String buildLoginUrl()
     {
-        
+
         final GoogleAuthorizationCodeRequestUrl url = flow
                 .newAuthorizationUrl();
         System.out.println("state token-" + stateToken);
@@ -121,12 +124,15 @@ public final class GmailUtil
         System.out.println("state token-" + stateToken);
         return stateToken;
     }
+
     /**
-     * method authenticates user with authcode from google authentication, keep fetching the messages until reaches to messages older than 90 days
+     * method authenticates user with authcode from google authentication, keep
+     * fetching the messages until reaches to messages older than 90 days
+     *
      * @param authCode
      * @return
      * @throws IOException
-     * @throws ParseException 
+     * @throws ParseException
      */
     public List<ConversationCount> getUserInfoJson(final String authCode) throws IOException, ParseException
     {
@@ -140,36 +146,36 @@ public final class GmailUtil
         final HttpRequest request = requestFactory.buildGetRequest(url);
         request.getHeaders().setContentType("application/json");
         String data = request.execute().parseAsString();
-        System.out.println("data-" + data);
+
         Gson gson = new Gson();
         User user = gson.fromJson(data, User.class);
-        System.out.println("userId--" + user.getId() + " data--" + data);
+        userEmailId = user.getEmail();
+
         while (!dateExceed)
         {
             fetchMessageList(mail, user, requestFactory);
         }
         for (String email : conversation.keySet())
         {
-            ConversationCount c=new ConversationCount(email, conversation.get(email));
-            System.out.println("c- "+c.getEmail()+" count- "+c.getNumberOfMessages());
+            ConversationCount c = new ConversationCount(email, conversation.get(email));
+
             conversationCounts.add(new ConversationCount(email, conversation.get(email)));
         }
-       
+
         Collections.sort(conversationCounts, new ConversationComparator());
-        System.out.println("sorted");
-        for(ConversationCount  c: conversationCounts)
-        {
-            System.out.println("c- "+c.getEmail()+" count- "+c.getNumberOfMessages());
-        }
+
         return conversationCounts;
     }
+
     /**
-     * method is internally called by getUserInfo method and fetches the list of messages
+     * method is internally called by getUserInfo method and fetches the list of
+     * messages
+     *
      * @param mailId
      * @param user
      * @param requestFactory
      * @throws IOException
-     * @throws ParseException 
+     * @throws ParseException
      */
     public void fetchMessageList(String mailId, User user, HttpRequestFactory requestFactory) throws IOException, ParseException
     {
@@ -197,7 +203,7 @@ public final class GmailUtil
         request1.setReadTimeout(20 * 60000);
         request1.getHeaders().setContentType("application/json");
         String mailData = request1.execute().parseAsString();
-        System.out.println("mailData-- " + mailData);
+
         JSONObject jSONObject = new JSONObject(mailData);
         try
         {
@@ -216,7 +222,6 @@ public final class GmailUtil
             msg.setThreadId(messageArray.getJSONObject(i).getString("threadId"));
             messages.add(msg);
         }
-        System.out.println("message length- " + messages.size());
         for (Message msg : messages)
         {
             if (!dateExceed)
@@ -229,14 +234,17 @@ public final class GmailUtil
             }
         }
     }
+
     /**
-     * method is internally called by fetchMessageList method and fetches the properties of messages specified by id
+     * method is internally called by fetchMessageList method and fetches the
+     * properties of messages specified by id
+     *
      * @param mailId
      * @param userId
      * @param messageId
      * @param requestFactory
      * @throws IOException
-     * @throws ParseException 
+     * @throws ParseException
      */
     public void getMessages(String mailId, String userId, String messageId, HttpRequestFactory requestFactory) throws IOException, ParseException
     {
@@ -246,11 +254,11 @@ public final class GmailUtil
         request1.setConnectTimeout(4 * 60000);
         request1.setReadTimeout(20 * 60000);
         String mailData = request1.execute().parseAsString();
-        System.out.println("message in getmessage-- \n" + mailData);
+        
         JSONObject jSONObject = new JSONObject(mailData);
         String date = jSONObject.getString("internalDate");
         Date msgDate = new Date(Long.parseLong(date));
-        System.out.println("message date- " + msgDate);
+        
         if (endDate == null)
         {
             startDate = msgDate;
@@ -264,7 +272,7 @@ public final class GmailUtil
             dateExceed = true;
             return;
         }
-        System.out.println("startdate date-- " + startDate + " end date-- " + endDate);
+        
         String[] lables = new Gson().fromJson(jSONObject.getJSONArray("labelIds").toString(), String[].class);
         int msgType = 2;
         for (String lable : lables)
@@ -279,9 +287,9 @@ public final class GmailUtil
                 msgType = 1;
                 break;
             }
-            
+
         }
-        
+
         JSONArray headerArray = jSONObject.getJSONObject("payload").getJSONArray("headers");
         for (int i = 0; i < headerArray.length(); i++)
         {
@@ -291,7 +299,7 @@ public final class GmailUtil
             {
                 if (header.equalsIgnoreCase("from"))
                 {
-                    
+
                     if (conversation.containsKey(headerValue))
                     {
                         conversation.replace(headerValue, conversation.get(headerValue) + 1);
@@ -337,6 +345,21 @@ public final class GmailUtil
                 }
             }
         }
-        
+
+    }
+
+    public Date getEndDate()
+    {
+        return endDate;
+    }
+
+    public Date getStartDate()
+    {
+        return startDate;
+    }
+
+    public String getUserEmailId()
+    {
+        return userEmailId;
     }
 }

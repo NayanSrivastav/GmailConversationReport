@@ -5,6 +5,7 @@
 --%>
 
 
+<%@page import="java.text.SimpleDateFormat"%>
 <%@page import="util.ConversationComparator"%>
 <%@page import="java.util.Collections"%>
 <%@page import="util.ConversationCount"%>
@@ -13,7 +14,7 @@
 <%@page import="java.io.IOException"%>
 <%@page import="java.util.Map"%>
 <%@page import="util.GmailUtil"%>
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@page contentType="text/html; pageEncoding=UTF-8 ; charset=UTF-8"%>
 <!DOCTYPE html>
 <html>
     <head>
@@ -34,12 +35,15 @@
             request.getSession().removeAttribute("state");
             try
             {
+                SimpleDateFormat sdf=new SimpleDateFormat("mm-dd-yyyy");
                 List<ConversationCount> conversationCounts = googleSignIn.getUserInfoJson(request.getParameter("code"));
-
-                out.print("<table><tr><td>email</td><td> #conversation</td></tr>");
+                out.print("<table><tr><td>EmailId</td><td>"+googleSignIn.getUserEmailId()+"</td></tr>");
+                out.print("<table><tr><td>Start Date</td><td>"+sdf.format(googleSignIn.getStartDate())+"</td></tr>");
+                out.print("<table><tr><td>End Date</td><td>"+sdf.format(googleSignIn.getEndDate())+"</td></tr>");
+                out.print("<tr><td>email</td><td> #conversation</td></tr>");
                 for (ConversationCount c : conversationCounts)
                 {
-                    System.out.println("<tr><td>" + c.getEmail() + "</td><td>" + c.getNumberOfMessages()+"</td></tr>");
+                    out.println("<tr><td>" + c.getEmail() + "</td><td>" + c.getNumberOfMessages() + "</td></tr>");
                 }
                 out.print("</table>");
             }
