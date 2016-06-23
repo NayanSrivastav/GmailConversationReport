@@ -1,81 +1,10 @@
-# Agri Loan
+# GmailConversationReport
 
-# Problem Description
-Agri-Loan is one of the loan products and needs some specific configuration different from other loan-products.
+This project asks user permission for general profile and read only access to emails and generates a report based on past 90 days about how many conversations user have had with whome.
 
-# Major Changes
+To run this project 
 
-## Need to add new Reference type as Landlord.
-
-    ## Data Model change
-        - crops_cultivated (String)
-        - area_of_land_for_cultivation (double)
-        - Charges (double) --extra
-    ### Config change
-        - "extra":{
-        {
-                    "label": "Payment type",
-                    "path": "reference_check.extra.payment_mode",
-                    "input": "dropdown",
-                    "options": [
-                                  "In cash",
-                                  "In crops"
-                                ]
-        },
-            "reference_check.crops_cultivated": {
-                            "visible": true,
-                                            "order": 46
-                                                          
-            },
-            "reference_check.are_of_land_for_cultivation": {
-                             "visible": true,
-                                             "order": 47
-                                                           
-            },
-            "reference_check.Crops cultivated": {
-                            "visible": true,
-                                            "order": 47
-                                                          
-            },
-        }
-## Need to add new Investment plan
-    ### Data model change
-        - description (String)
-        - frequency (integer)
-        - purchase_price (double)
-    ### Config change
-        "investment_plan": {
-            "category": {
-                "-default": {
-                                "visible": true,
-                                "optional": false,
-                                "label": "Investment Plan",
-                                "-data": {
-                                          "text": true,
-                                            "type": true,
-                                          "value": true,
-                                        "completion_date": false 
-                            }
-                                              
-                },
-                    {
-                        "agricultural":
-                        {
-                          "-data":
-                          {
-                           "description":true,
-                           "value":
-                           {
-                             "visible":true,
-                           "label":"amount"
-                            },
-                           "frequency":true,
-                           "purchase_price":true
-                         }
-                                                          
-                    }
-                }                 
-            }
-        }
-
-## Need to add new IncomeSheets.
+1. create a project in google developer console
+2. Create client_id, client_secret
+3. Replace client_id, client_secret values in gmailUtil
+4. give your callback url in gmailUtil and same in googe ldeveloper console. And thats it.
